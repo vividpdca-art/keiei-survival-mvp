@@ -185,7 +185,7 @@ export default function Home() {
         <header className="text-center">
           <h1 className="text-2xl font-bold">資金余力かんたん診断</h1>
           <p className="mt-1 text-sm text-gray-500">
-            今の資金余力と、次に確認すべきことを見える化します v1.0.9
+            今の資金余力と、次に確認すべきことを見える化します v1.0.10
           </p>
         </header>
 
@@ -312,26 +312,28 @@ export default function Home() {
                   </p>
                   <ul className="space-y-3 text-sm">
                     <li className="flex flex-col gap-1">
-                      <span className="text-xs font-bold text-blue-600">① 売上で埋める</span>
+                      <span className="text-xs font-bold text-blue-600">① 売上を増やす</span>
                       <p className="text-gray-700">
                         {stats.grossProfitMargin && stats.grossProfitMargin > 0 ? (
                           <>
                             粗利率{stats.grossProfitMargin.toFixed(1)}%なら、
                             必要売上は約<span className="font-bold">{formatYen(Math.ceil(stats.shortfallGrossProfit / (stats.grossProfitMargin / 100)))}</span>
+                            <br />
+                            <span className="text-[10px] text-gray-500">※値上げ・原価見直しで粗利率を上げる方法もあります</span>
                           </>
                         ) : (
-                          "粗利率が算出できないため計算不可"
+                          "計算不可"
                         )}
                       </p>
                     </li>
                     <li className="flex flex-col gap-1">
-                      <span className="text-xs font-bold text-indigo-600">② 固定費で埋める</span>
+                      <span className="text-xs font-bold text-indigo-600">② 固定費を下げる</span>
                       <p className="text-gray-700">
                         固定費を<span className="font-bold">{formatYen(stats.shortfallGrossProfit)}</span>下げれば返済ライン達成
                       </p>
                     </li>
                     <li className="flex flex-col gap-1">
-                      <span className="text-xs font-bold text-purple-600">③ 返済条件で埋める</span>
+                      <span className="text-xs font-bold text-purple-600">③ 返済条件を相談する</span>
                       <p className="text-gray-700">
                         返済額を<span className="font-bold">{formatYen(stats.shortfallGrossProfit)}</span>軽くできれば返済ライン達成の可能性
                       </p>
@@ -422,9 +424,9 @@ export default function Home() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
               {[
-                { id: "売上", label: "売上で埋める" },
-                { id: "固定費", label: "固定費で削る" },
-                { id: "返済条件", label: "返済条件を相談する" },
+                { id: "売上を増やす", label: "売上を増やす" },
+                { id: "固定費を下げる", label: "固定費を下げる" },
+                { id: "返済条件を相談する", label: "返済条件を相談する" },
               ].map((m) => (
                 <button
                   key={m.id}
@@ -449,7 +451,15 @@ export default function Home() {
                 value={promiseAction}
                 onChange={(e) => setPromiseAction(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
-                placeholder="例：今月中に家賃交渉の相談日を決める"
+                placeholder={
+                  promiseMethod === "売上を増やす"
+                    ? "どの商品・サービスで売上を作るか（例：単価の高いメニューを優先提案する）"
+                    : promiseMethod === "固定費を下げる"
+                      ? "何のコストを削減するか（例：外注費を1社見直す／家賃交渉の相談をする）"
+                      : promiseMethod === "返済条件を相談する"
+                        ? "どこに・何を相談するか（例：金融機関に返済条件の相談日を決める）"
+                        : "まず上の戦略を選んでください"
+                }
               />
             </div>
 
