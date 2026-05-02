@@ -36,6 +36,7 @@ export default function Home() {
 
   const [promiseMethod, setPromiseMethod] = useState<string>("");
   const [promiseAction, setPromiseAction] = useState<string>("");
+  const [selectedActionIds, setSelectedActionIds] = useState<string[]>([]);
 
   const updateInput = (key: keyof Inputs, value: string) => {
     const numericOnly = value.replace(/[^\d]/g, "");
@@ -155,6 +156,36 @@ export default function Home() {
       dont: "余裕が出た直後の大きな支出",
     };
   }, [stats]);
+
+  const simulationStats = useMemo(() => {
+    let simulatedGrossProfit = stats.grossProfit;
+    let simulatedFixedCosts = stats.fixedCosts;
+    let simulatedRepayments = stats.repayments;
+
+    if (selectedActionIds.includes("sales")) {
+      simulatedGrossProfit *= 1.1;
+    }
+    if (selectedActionIds.includes("fixed")) {
+      simulatedFixedCosts *= 0.9;
+    }
+    if (selectedActionIds.includes("repayment")) {
+      simulatedRepayments *= 0.5;
+    }
+
+    const simulatedMonthlyCashDecrease =
+      simulatedFixedCosts + simulatedRepayments - simulatedGrossProfit;
+    const simulatedShortfallGrossProfit = Math.max(0, simulatedMonthlyCashDecrease);
+    const simulatedRemainingDays =
+      simulatedMonthlyCashDecrease > 0
+        ? Math.floor((stats.cash / simulatedMonthlyCashDecrease) * 30)
+        : Infinity;
+
+    return {
+      monthlyCashDecrease: simulatedMonthlyCashDecrease,
+      shortfallGrossProfit: simulatedShortfallGrossProfit,
+      remainingDays: simulatedRemainingDays,
+    };
+  }, [stats, selectedActionIds]);
 
   const daysColor =
     stats.monthlyCashDecrease <= 0
@@ -409,6 +440,97 @@ export default function Home() {
                   選んだ打ち手を実行できたか
                 </li>
               </ul>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border bg-white p-5 shadow-sm">
+          <h2 className="mb-1 border-l-4 border-orange-500 pl-3 text-lg font-bold">
+            次の一手を試す
+          </h2>
+          <p className="mb-4 text-xs text-gray-500">
+            打ち手を組み合わせた時の改善効果をシミュレーションします（最大2つまで）
+          </p>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {[
+              { id: "sales", label: "売上を増やす", desc: "売上10%アップ分の粗利益だけ改善" },
+              { id: "fixed", label: "固定費を下げる", desc: "固定費10%ダウン" },
+              { id: "repayment", label: "返済条件を相談する", desc: "返済額50%ダウン" },
+            ].map((action) => {
+              const isSelected = selectedActionIds.includes(action.id);
+              return (
+                <button
+                  key={action.id}
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedActionIds(selectedActionIds.filter((id) => id !== action.id));
+                    } else if (selectedActionIds.length < 2) {
+                      setSelectedActionIds([...selectedActionIds, action.id]);
+                    }
+                  }}
+                  className={`relative flex flex-col items-start rounded-xl border p-3 text-left transition-all ${
+                    isSelected
+                      ? "border-orange-500 bg-orange-50 ring-2 ring-orange-200"
+                      : "border-gray-200 bg-white hover:border-gray-300"
+                  }`}
+                >
+                  <span className={`text-sm font-bold ${isSelected ? "text-orange-700" : "text-gray-700"}`}>
+                    {action.label}
+                  </span>
+                  <span className="mt-1 text-[10px] text-gray-500">{action.desc}</span>
+                  {isSelected && (
+                    <span className="absolute right-2 top-2 rounded bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      選択中
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-6 rounded-xl bg-gray-900 p-5 text-white">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="text-center md:border-r md:border-gray-700">
+                <p className="text-[10px] text-gray-400">改善後の月間収支</p>
+                <p className={`text-xl font-black ${simulationStats.monthlyCashDecrease <= 0 ? "text-green-400" : "text-red-400"}`}>
+                  {simulationStats.monthlyCashDecrease <= 0 ? "+" : "▲"}
+                  {formatYen(Math.abs(simulationStats.monthlyCashDecrease))}
+                </p>
+              </div>
+              <div className="text-center md:border-r md:border-gray-700">
+                <p className="text-[10px] text-gray-400">改善後の不足粗利益</p>
+                <p className="text-xl font-black text-white">
+                  {formatYen(simulationStats.shortfallGrossProfit)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] text-gray-400">改善後の残り資金日数</p>
+                <p className="text-xl font-black text-orange-400">
+                  {simulationStats.remainingDays === Infinity ? "∞" : simulationStats.remainingDays}日
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 border-t border-gray-700 pt-4 text-center">
+              {selectedActionIds.length === 0 ? (
+                <p className="text-sm text-gray-400 italic">上のブロックを選んでシミュレーションを開始してください</p>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    {simulationStats.remainingDays >= 90 ? (
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-xs font-bold">✓</span>
+                    ) : (
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold">!</span>
+                    )}
+                    <p className="text-sm font-bold">
+                      {simulationStats.remainingDays >= 90 
+                        ? "90日以上の資金余力を確保できそうです！" 
+                        : "まだ90日に届きません。他の組み合わせも検討しましょう。"}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
